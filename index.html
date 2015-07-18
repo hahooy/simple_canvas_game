@@ -3,8 +3,25 @@
   <head>
     <meta charset="utf-8">
     <title>Simple Canvas Game</title>
+    <link rel="stylesheet" type="text/css" href="style/game.css">
   </head>
   <body>
+    <div class="header">
+      <h2>This is a simple canvas game, you win the game by catching 10 goblins</h2>
+    </div>
+    <div class="content">
+      <div class="buttons">
+	<div id="button-container">
+	  <button id="restart" type="button">Restart</button>
+	  <button id="crazy" type="button">Crazy goblins</button>
+	</div>
+      </div>
+      <div class="game-window">
+	<div id="game-container">
+	  <canvas id="game"></canvas>
+	</div>
+      </div>
+    </div>
     <script src="js/game.js"></script>
   </body>
 </html>

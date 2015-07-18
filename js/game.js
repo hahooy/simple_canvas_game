@@ -1,9 +1,8 @@
 // Create the canvas
-var canvas = document.createElement("canvas");
+var canvas = document.getElementById("game");
 var ctx = canvas.getContext("2d");
 canvas.width = 512;
 canvas.height = 480;
-document.body.appendChild(canvas);
 
 // Background image
 var bgReady = false;
@@ -30,16 +29,17 @@ monsterImage.onload = function () {
 monsterImage.src = "images/monster.png";
 
 // Game objects
-// hero object, there is only one hero
+// hero object
 var hero = {
     speed: 256 // movement in pixels per second
 };
-// monster object, there are three monster
-var Monster = (function(speed) {
-    this.speed = speed;
+// monster object
+var Monster = (function(vx, vy) {
+    this.vx = vx;
+    this.vy = vy;
 });
 
-var monsters = new Map();
+var monsters = [];
 var monstersCaught = 0;
 
 // Handle keyboard controls
@@ -56,24 +56,38 @@ addEventListener("keyup", function (e) {
 // Reset the game when the player catches a monster
 var reset = function () {
     var i = 0;
-    var monstersLimit = 10;
+    var monstersLimit = 3;
     var numOfMonsters = 1 + Math.random() * (monstersLimit - 1);
+    monsters = [];
 
     // set the initial position of the hero to the center
     hero.x = canvas.width / 2;
     hero.y = canvas.height / 2;
 
-    // create monsters in a random number
+    // create monsters in a random number with random initial velocity
     for (i = 0; i < numOfMonsters; i++) {
-	monsters.set(i, new Monster(100));
+	monsters.push( new Monster(-100 + Math.random() * 200, -100 + Math.random() * 200));
     }
 
     // Throw the monster somewhere on the screen randomly
-    for (i = 0; i < monsters.size; i++) {
-	monsters.get(i).x = 32 + (Math.random() * (canvas.width - 65));
-	monsters.get(i).y = 32 + (Math.random() * (canvas.height - 65));
+    for (i = 0; i < monsters.length; i++) {
+	monsters[i].x = 32 + (Math.random() * (canvas.width - 65));
+	monsters[i].y = 32 + (Math.random() * (canvas.height - 65));
     }
 };
+
+// trun a goblin to be crazy fast
+window.document.getElementById("crazy").onclick = function() {
+    // generate a monster with high speed
+    var crazyMonster = new Monster(200 + Math.random() * 150, 200 + Math.random() * 150);
+    crazyMonster.x = 32 + (Math.random() * (canvas.width - 65));
+    crazyMonster.y = 32 + (Math.random() * (canvas.height - 65));
+    monsters.push(crazyMonster);
+    crazyMonster = null;    
+    render();
+
+};
+
 
 // Update game objects
 var update = function (modifier) {
@@ -92,42 +106,41 @@ var update = function (modifier) {
 	hero.x += hero.speed * modifier;
     }
 
-
     // Are they touching?
-    function deleteTouch(value, key, map) {
+    monsters = monsters.filter(function(monster) {
 	if (
-	    hero.x <= (value.x + 30)
-		&& value.x <= (hero.x + 32)
-		&& hero.y <= (value.y + 32)
-		&& value.y <= (hero.y + 32)
+	    hero.x <= (monster.x + 30)
+		&& monster.x <= (hero.x + 32)
+		&& hero.y <= (monster.y + 32)
+		&& monster.y <= (hero.y + 32)
 	) {
-	    ++monstersCaught;
-	    map.delete(key);
+	    monstersCaught++;	    
+	    return false;
+	} else {
+	    return true;
 	}
-    }
+    });
 
-    function updateMonsterPos(value, key, map) {
-	if (value.x < 0
-	    || value.x > canvas.width) {
-	    value.speed = -value.speed;
+    // update the position of monsters    
+    monsters.forEach(function(monster) {
+	if (monster.x + monster.vx * modifier < 0
+	    || monster.x + monster.vx * modifier> canvas.width) {
+	    monster.vx = -monster.vx;
 	}
-	value.x += value.speed * modifier;
-    }
-	
-    monsters.forEach(deleteTouch);
-    monsters.forEach(updateMonsterPos);
+	if (monster.y + monster.vy * modifier < 0 || monster.y + monster.vy * modifier > canvas.height) {
+	    monster.vy = -monster.vy;
+	}
+	monster.x += monster.vx * modifier;
+	monster.y += monster.vy * modifier;
+    });
 
-    if (monsters.size === 0) {
+    if (monsters.length === 0) {
 	reset();
     }
 };
 
 // Draw everything
 var render = function () {
-    function drawMonsters(value, key, map) {
-	ctx.drawImage(monsterImage, value.x, value.y);
-    }
-
     if (bgReady) {
 	ctx.drawImage(bgImage, 0, 0);
     }
@@ -137,7 +150,9 @@ var render = function () {
     }
 
     if (monsterReady) {
-	monsters.forEach(drawMonsters);
+	monsters.forEach(function(monster) {
+	    ctx.drawImage(monsterImage, monster.x, monster.y);
+	});
     }
 
     // Score
@@ -162,7 +177,7 @@ var winningRender = function() {
     ctx.font = "36px Helvetica";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText("You win the game", 100, 100);
+    ctx.fillText("You win the game", 100, 150);
 }
 
 // The main game loop
@@ -186,6 +201,14 @@ var main = function () {
 // Cross-browser support for requestAnimationFrame
 var w = window;
 requestAnimationFrame = w.requestAnimationFrame || w.webkitRequestAnimationFrame || w.msRequestAnimationFrame || w.mozRequestAnimationFrame;
+
+
+// restart the game by clicking on the Restart button
+window.document.getElementById("restart").onclick = function() {
+    reset();
+    monstersCaught = 0;
+    main();
+};
 
 // Let's play this game!
 var then = Date.now();
